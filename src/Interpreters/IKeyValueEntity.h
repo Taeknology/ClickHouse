@@ -25,8 +25,15 @@ public:
      * Get data from storage directly by keys.
      *
      * @param keys - keys to get data for. Key can be compound and represented by several columns.
+     *              Implementations must tolerate `Nullable`/`LowCardinality` wrapper mismatches
+     *              between `keys[i].type` and the storage's primary-key column type — the lookup
+     *              must produce bytes that match what the storage's sink wrote at INSERT (i.e.
+     *              serialize via the primary-key type, not the input column's type). Otherwise
+     *              joins through `DirectKeyValueJoin` silently return zero rows for affected rows.
      * @param required_columns - if we don't need all attributes, implementation can use it to benefit from reading a subset of them.
-     * @param out_null_map - output parameter indicating which keys were not found.
+     * @param out_null_map - output parameter. Set to 0 for rows whose key was not found in storage
+     *                       AND for rows whose input `Field` was `Null` (both cases produce a
+     *                       default-valued result row from the caller's perspective).
      * @param out_offsets - output parameter for ALL join semantics. If provided (non-empty after call),
      *                      contains the cumulative count of result rows for each input key.
      *
